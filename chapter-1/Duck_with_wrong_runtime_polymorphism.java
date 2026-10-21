@@ -40,9 +40,9 @@ public class Duck_with_wrong_runtime_polymorphism {
         System.out.println("=== Running Wooden Decoy Duck ===");
         System.out.println("==============================");
         woodenDecoyDuck.display(); 
-        woodenDecoyDuck.quack(); // THIS IS WHERE Runtime Polymorphism FAILS.
+        woodenDecoyDuck.quack(); // Wrong use of Runtime Polymorphism.
         woodenDecoyDuck.swim(); 
-        woodenDecoyDuck.fly(); // THIS IS WHERE Runtime Polymorphism FAILS.
+        woodenDecoyDuck.fly(); // Wrong use of Runtime Polymorphism.
     }
 }
     
