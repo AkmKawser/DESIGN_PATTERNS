@@ -2,6 +2,7 @@
 // classes are there and 50 of them have fly() behavior and 50 of them have quack() behavior then we 
 // have to implement them in those classes. CUZ INTERFACE IS ONLY A CONTRACT.so we must implement all the methods in the interface which methods wants to use it.
 // so it breaks the OOP principle of code reusability.So, it is not a good approach.
+// The only good thing in this design is that JOE separated the behaviors into different interfaces. Which is basically a design princple caleed "Interface Segregation Principle". 
 
 package interfaces;
 
