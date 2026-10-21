@@ -14,7 +14,7 @@ abstract class Duck {
     }
 }
 
-class WoodenDecoyDuck extends Duck {
+class DecoyDuck extends Duck {
     @Override
     public void display() {
         System.out.println("Looks like a wooden decoy duck.");
@@ -34,7 +34,7 @@ class WoodenDecoyDuck extends Duck {
 public class Duck_with_wrong_runtime_polymorphism {
     public static void main(String[] args) {
         // Create an instance of the first duck type
-        Duck woodenDecoyDuck = new WoodenDecoyDuck();
+        Duck woodenDecoyDuck = new DecoyDuck();
 
         System.out.println("==============================");
         System.out.println("=== Running Wooden Decoy Duck ===");
