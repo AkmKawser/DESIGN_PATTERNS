@@ -1,3 +1,5 @@
+package wrong_runtime_polymorphism;
+
 abstract class Duck {
     public abstract void display();
 

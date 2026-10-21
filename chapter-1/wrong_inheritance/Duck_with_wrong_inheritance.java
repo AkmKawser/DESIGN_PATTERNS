@@ -1,3 +1,5 @@
+package wrong_inheritance;
+
 abstract class Duck {
     // Method 1: Abstract method.
     public abstract void display(); 

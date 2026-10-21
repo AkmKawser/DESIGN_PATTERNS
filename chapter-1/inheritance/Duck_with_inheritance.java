@@ -1,3 +1,5 @@
+package inheritance;
+
 abstract class Duck {
     
     // Method 1: Abstract Method. 
