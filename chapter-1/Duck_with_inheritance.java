@@ -43,7 +43,7 @@ class RedheadDuck extends Duck {
     }
 }
 
-// Note: For a real compiler, you would need to add all these classes to the same package structure.
+
 public class Duck_with_inheritance {
     public static void main(String[] args) {
         // Create an instance of the first duck type
