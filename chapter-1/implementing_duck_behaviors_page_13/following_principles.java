@@ -1,7 +1,7 @@
-package implementing_duck_behaviors_page_13;
+package implementing_duck_behaviors;
 
 // ==========================================
-// 1. THE BEHAVIOR INTERFACES
+// PAGE 13: THE BEHAVIOR INTERFACES
 // ==========================================
 interface FlyBehavior {
     void fly();
@@ -12,22 +12,29 @@ interface QuackBehavior {
 }
 
 // ==========================================
-// 2. THE CONCRETE BEHAVIOR CLASSES
-// (These replace the repeated code in your ducks)
+// PAGE 13: THE CONCRETE BEHAVIOR CLASSES
 // ==========================================
 
 // --- Fly Behaviors ---
 class FlyWithWings implements FlyBehavior {
     @Override
     public void fly() {
-        System.out.println("I'm flying with wings!");
+        System.out.println("I'm flying!!"); // Exact text from Page 16 output
     }
 }
 
 class FlyNoWay implements FlyBehavior {
     @Override
     public void fly() {
-        System.out.println("I can't fly.");
+        System.out.println("I can't fly"); // Exact text from Page 16 output
+    }
+}
+
+// [PAGE 15, STEP 3]: The new Rocket-powered behavior
+class FlyRocketPowered implements FlyBehavior {
+    @Override
+    public void fly() {
+        System.out.println("I'm flying with a rocket!"); // Exact text from Page 16 output
     }
 }
 
@@ -35,14 +42,14 @@ class FlyNoWay implements FlyBehavior {
 class Quack implements QuackBehavior {
     @Override
     public void quack() {
-        System.out.println("Quack!");
+        System.out.println("Quack"); // Exact text from Page 16 output
     }
 }
 
 class Squeak implements QuackBehavior {
     @Override
     public void quack() {
-        System.out.println("Squeak!");
+        System.out.println("Squeak");
     }
 }
 
@@ -54,12 +61,10 @@ class MuteQuack implements QuackBehavior {
 }
 
 // ==========================================
-// 3. THE DUCK SUPERCLASS (Now uses Composition)
+// PAGE 13 & 14: THE DUCK SUPERCLASS
 // ==========================================
 abstract class Duck {
-    
-    // We define the behavior types as variables.
-    // Notice we are "programming to the interface" here!
+    // Page 13: Instance variables of the behavior interface types
     FlyBehavior flyBehavior;
     QuackBehavior quackBehavior;
 
@@ -67,7 +72,7 @@ abstract class Duck {
 
     public abstract void display();
 
-    // The Duck delegates the action to the behavior object
+    // Page 13: perform methods that delegate to the behavior objects
     public void performFly() {
         flyBehavior.fly();
     }
@@ -76,7 +81,7 @@ abstract class Duck {
         quackBehavior.quack();
     }
     
-    // Allows us to change behavior at runtime
+    // Page 15, Step 1: The dynamic setter methods
     public void setFlyBehavior(FlyBehavior fb) {
         flyBehavior = fb;
     }
@@ -91,12 +96,11 @@ abstract class Duck {
 }
 
 // ==========================================
-// 4. THE SPECIFIC DUCK TYPES
+// PAGE 14: THE SPECIFIC DUCK TYPES
 // ==========================================
-
 class MallardDuck extends Duck {
     public MallardDuck() {
-        // Here we assign the specific behaviors in the constructor
+        // Page 14, Step 3: Setting behaviors in the constructor
         quackBehavior = new Quack();
         flyBehavior = new FlyWithWings();
     }
@@ -121,7 +125,6 @@ class RedheadDuck extends Duck {
 
 class RubberDuck extends Duck {
     public RubberDuck() {
-        // Rubber ducks squeak and cannot fly
         quackBehavior = new Squeak();
         flyBehavior = new FlyNoWay();
     }
@@ -134,7 +137,6 @@ class RubberDuck extends Duck {
 
 class DecoyDuck extends Duck {
     public DecoyDuck() {
-        // Decoy ducks are silent and cannot fly
         quackBehavior = new MuteQuack();
         flyBehavior = new FlyNoWay();
     }
@@ -145,35 +147,40 @@ class DecoyDuck extends Duck {
     }
 }
 
+// [PAGE 15, STEP 2]: The new ModelDuck
+class ModelDuck extends Duck {
+    public ModelDuck() {
+        // Model duck begins life grounded, without a way to fly.
+        flyBehavior = new FlyNoWay();
+        quackBehavior = new Quack();
+    }
+
+    @Override
+    public void display() {
+        System.out.println("I'm a model duck");
+    }
+}
+
 // ==========================================
-// 5. MAIN METHOD
+// PAGE 16: THE TEST CLASS (MiniDuckSimulator)
 // ==========================================
-public class Duck_with_interfaces {
+public class MiniDuckSimulator {
     public static void main(String[] args) {
         
-        System.out.println("==============================");
-        System.out.println("=== Running Mallard Duck ===");
-        System.out.println("==============================");
+        // Page 16, Step 4: The exact test sequence from the book
         Duck mallard = new MallardDuck();
-        mallard.display();
-        mallard.performQuack(); // Note: method renamed to performQuack
-        mallard.performFly();   // Note: method renamed to performFly
-        mallard.swim();
+        mallard.performQuack();
+        mallard.performFly();
 
-        System.out.println("\n==============================");
-        System.out.println("=== Running Rubber Duck ===");
-        System.out.println("==============================");
-        Duck rubber = new RubberDuck();
-        rubber.display();
-        rubber.performQuack(); 
-        rubber.performFly();   
-        rubber.swim();
-
-        // The magic of this new design: Changing behavior at runtime!
-        System.out.println("\n==============================");
-        System.out.println("=== Magic: Rubber Duck gets rocket power! ===");
-        System.out.println("==============================");
-        rubber.setFlyBehavior(new FlyWithWings()); // We just gave it wings!
-        rubber.performFly(); // Now it flies!
+        Duck model = new ModelDuck();
+        
+        // 1. First call delegates to the FlyNoWay behavior set in the constructor
+        model.performFly(); 
+        
+        // 2. Dynamically change the behavior at runtime!
+        model.setFlyBehavior(new FlyRocketPowered());
+        
+        // 3. Now it flies with a rocket
+        model.performFly(); 
     }
 }
