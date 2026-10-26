@@ -1,4 +1,4 @@
-package implementing_duck_behaviors;
+package strategy_pattern;
 
 // ==========================================
 // PAGE 13: THE BEHAVIOR INTERFACES
