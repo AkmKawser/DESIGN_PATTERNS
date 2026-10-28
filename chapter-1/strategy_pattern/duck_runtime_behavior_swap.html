@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Strategy pattern: changing behavior at runtime</title>
+<style>
+:root{color-scheme:dark;box-sizing:border-box}
+*{box-sizing:inherit}
+body{margin:0;background:#0b0e13;color:#e6edf3;font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px 12px}
+#w{max-width:700px;margin:0 auto;background:#14181f;border:1px solid #2f3846;border-radius:12px;padding:16px}
+h1{font-size:20px;font-weight:500;margin:0 0 4px}
+.sub{margin:0 0 14px;color:#9aa6b8;font-size:14px}
+pre.java{margin:0 0 10px;padding:12px 16px;background:#0f131a;border:1px solid #2f3846;border-radius:12px;font:14px/1.6 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:#e6edf3;white-space:pre;overflow-x:auto;counter-reset:ln}
+.ln{display:block;min-height:1.6em}
+.ln::before{counter-increment:ln;content:counter(ln);display:inline-block;width:2ch;margin-right:1.5ch;text-align:right;color:#5b6677}
+.ln.key{background:rgba(255,212,121,.16);box-shadow:inset 3px 0 0 #ffd479;margin:0 -16px;padding:0 16px}
+.k{color:#c792ea}.t{color:#7fd4e6}.f{color:#82aaff}.c{color:#7c879b;font-style:italic}
+.el{opacity:0;transition:opacity .5s}
+.out{opacity:0;transition:opacity .4s;color:#a5d98b}
+.console{background:#0f131a;border:1px solid #2f3846;border-radius:12px;padding:10px 16px;font:14px/1.6 ui-monospace,Menlo,Consolas,monospace;min-height:66px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:6px 0 10px;font-size:13px;color:#9aa6b8}
+.amber{color:#ffd479}
+#exp{margin:12px 0;padding:12px 16px;background:#1f2530;border:1px solid #2f3846;border-radius:12px;min-height:150px}
+#exp h2{margin:0 0 6px;font-size:16px;font-weight:500}
+#exp p{margin:0 0 8px;font-size:15px}
+#exp p.gotcha{color:#9aa6b8;font-size:14px;margin:0}
+code{font:13px ui-monospace,Menlo,Consolas,monospace;background:#0f131a;padding:1px 5px;border-radius:4px;color:#7fd4e6}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{font:14px system-ui,sans-serif;color:#e6edf3;background:transparent;border:1px solid #3b4658;border-radius:8px;padding:7px 14px;cursor:pointer}
+button:hover{background:#1f2530}
+#lbl{margin-left:auto;font-size:14px;color:#9aa6b8}
+.note{margin:12px 0 0;font-size:13px;color:#7c879b}
+</style>
+</head>
+<body>
+<div id="w">
+<h1>Changing behavior at runtime</h1>
+<p class="sub">Strategy pattern in Java: what happens in memory when <code>setFlyBehavior()</code> runs.</p>
+<pre class="java" id="code"><span class="ln"><span class="t">Duck</span> model = <span class="k">new</span> <span class="t">ModelDuck</span>();</span><span class="ln">model.<span class="f">performFly</span>();</span><span class="ln">model.<span class="f">setFlyBehavior</span>(<span class="k">new</span> <span class="t">FlyRocketPowered</span>());</span><span class="ln">    <span class="c">// inside Duck.setFlyBehavior(FlyBehavior fb)</span></span><span class="ln">    flyBehavior = fb;</span><span class="ln">model.<span class="f">performFly</span>();</span></pre>
+<svg width="100%" viewBox="0 0 680 372" role="img" style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif">
+<title>Stack and heap during the runtime behavior swap</title>
+<desc>model points to ModelDuck#1. Its flyBehavior field first points to FlyNoWay#1, then moves to FlyRocketPowered#1.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ffd479"/></marker></defs>
+<rect x="10" y="20" width="135" height="280" rx="10" fill="#1f2530" stroke="#2f3846"/>
+<text x="22" y="44" fill="#9aa6b8" font-size="14">Stack</text>
+<rect x="235" y="20" width="437" height="280" rx="10" fill="#1f2530" stroke="#2f3846"/>
+<text x="250" y="44" fill="#9aa6b8" font-size="14">Heap</text>
+<rect x="10" y="312" width="662" height="48" rx="10" fill="#1f2530" stroke="#2f3846"/>
+<text x="22" y="341" fill="#9aa6b8" font-size="14">Class area</text>
+<g id="c_duck" class="el" data-d="300"><rect x="125" y="322" width="100" height="28" rx="6" fill="#14473d" stroke="#5fd0b0"/><text x="175" y="341" text-anchor="middle" fill="#e6edf3" font-size="14">ModelDuck</text></g>
+<g id="c_nofly" class="el" data-d="700"><rect x="235" y="322" width="90" height="28" rx="6" fill="#14473d" stroke="#5fd0b0"/><text x="280" y="341" text-anchor="middle" fill="#e6edf3" font-size="14">FlyNoWay</text></g>
+<g id="c_quack" class="el" data-d="700"><rect x="335" y="322" width="70" height="28" rx="6" fill="#14473d" stroke="#5fd0b0"/><text x="370" y="341" text-anchor="middle" fill="#e6edf3" font-size="14">Quack</text></g>
+<g id="c_rocket" class="el"><rect x="415" y="322" width="160" height="28" rx="6" fill="#14473d" stroke="#ffd479"/><text x="495" y="341" text-anchor="middle" fill="#e6edf3" font-size="14">FlyRocketPowered</text></g>
+<g id="v_model" class="el"><rect x="22" y="80" width="110" height="40" rx="8" fill="#14181f" stroke="#3b4658"/><text x="77" y="105" text-anchor="middle" fill="#e6edf3" font-size="16">model</text></g>
+<g id="a_model" class="el" data-d="600"><path d="M132 100 L255 100" stroke="#ffd479" stroke-width="3" fill="none" marker-end="url(#ah)"/><rect x="168" y="89" width="52" height="22" rx="11" fill="#14181f"/><text x="194" y="105" text-anchor="middle" fill="#ffd479" font-size="14">model</text></g>
+<g id="o_duck" class="el" data-d="300"><rect x="255" y="70" width="140" height="145" rx="8" fill="#14473d" stroke="#5fd0b0"/><text x="325" y="92" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="500">ModelDuck#1</text>
+<rect x="265" y="105" width="120" height="34" rx="6" fill="#0f2f29" stroke="#5fd0b0"/><text x="325" y="127" text-anchor="middle" fill="#e6edf3" font-size="14">quackBehavior</text>
+<rect id="f_fly" x="265" y="160" width="120" height="34" rx="6" fill="#0f2f29" stroke="#5fd0b0"/><text x="325" y="182" text-anchor="middle" fill="#e6edf3" font-size="14">flyBehavior</text></g>
+<g id="o_quack" class="el" data-d="700"><rect x="518" y="100" width="150" height="44" rx="8" fill="#14473d" stroke="#5fd0b0"/><text x="593" y="127" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="500">Quack#1</text></g>
+<g id="a_quack" class="el" data-d="1000"><path d="M385 122 L518 122" stroke="#ffd479" stroke-width="3" fill="none" marker-end="url(#ah)"/><rect x="401" y="111" width="100" height="22" rx="11" fill="#14181f"/><text x="451" y="127" text-anchor="middle" fill="#ffd479" font-size="14">quackBehavior</text></g>
+<g id="o_nofly" class="el" data-d="700"><rect id="r_nofly" x="518" y="155" width="150" height="44" rx="8" fill="#14473d" stroke="#5fd0b0"/><text x="593" y="182" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="500">FlyNoWay#1</text></g>
+<text id="gcnote" class="el" x="593" y="218" text-anchor="middle" fill="#9aa6b8" font-size="14">no references left</text>
+<path id="ghost" class="el" d="M385 177 L518 177" stroke="#ffd479" stroke-width="3" stroke-dasharray="10 8" fill="none" marker-end="url(#ah)"/>
+<g id="a_fly" class="el" data-d="1000"><path id="fly_path" d="M385 177 L518 177" stroke="#ffd479" stroke-width="3" fill="none" marker-end="url(#ah)"/><rect id="fly_pill" x="405" y="166" width="92" height="22" rx="11" fill="#14181f"/><text id="fly_txt" x="451" y="182" text-anchor="middle" fill="#ffd479" font-size="14">flyBehavior</text></g>
+<g id="o_rocket" class="el"><rect id="r_rocket" x="518" y="243" width="150" height="44" rx="8" fill="#14473d" stroke="#5fd0b0"/><text x="593" y="270" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="500">FlyRocketPowered#1</text></g>
+<g id="frame" class="el"><text x="22" y="236" fill="#9aa6b8" font-size="14">setFlyBehavior()</text><rect x="22" y="245" width="110" height="40" rx="8" fill="#14181f" stroke="#3b4658"/><text x="77" y="270" text-anchor="middle" fill="#e6edf3" font-size="16">fb</text>
+<path d="M132 265 L518 265" stroke="#ffd479" stroke-width="3" fill="none" marker-end="url(#ah)"/><rect x="320" y="254" width="36" height="22" rx="11" fill="#14181f"/><text x="338" y="270" text-anchor="middle" fill="#ffd479" font-size="14">fb</text></g>
+<circle id="dot" cx="77" cy="100" r="7" fill="#ffd479" stroke="#14181f" stroke-width="2" style="opacity:0;transition:opacity .2s"/>
+</svg>
+<div class="legend"><span><span class="amber">&#8594;</span> amber arrow = reference</span><span><span class="amber">- - &#8594;</span> dashed, faded = replaced</span></div>
+<div class="console"><div style="color:#5b6677;font-size:12px">Console output</div><div id="out1" class="out">I can't fly</div><div id="out2" class="out">I'm flying with a rocket!</div></div>
+<div id="exp"><h2 id="eh"></h2><div id="eb"></div></div>
+<div class="bar"><button id="bBack">Back</button><button id="bPlay">Play</button><button id="bNext">Next</button><button id="bReset">Reset</button><span id="lbl"></span></div>
+<p class="note">Simplified model of the JVM: class metadata really lives in Metaspace, and each object has a header with a pointer to its class.</p>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const base=['v_model','a_model','o_duck','o_quack','o_nofly','a_quack','a_fly','c_duck','c_nofly','c_quack'];
+const more=['o_rocket','c_rocket'];
+const sets=[base,base,base.concat(more,['frame']),base.concat(more,['ghost','gcnote']),base.concat(more,['ghost','gcnote'])];
+const exp=[
+["Ready","<p>This animation follows the test code from <code>MiniDuckSimulator</code> and shows what changes in memory when the fly behavior is swapped. Press Play, or use Next and Back to go one activity at a time.</p>"],
+["1. Create the duck: <code>new ModelDuck()</code>","<p>The program creates a <code>ModelDuck</code> and keeps it in <code>model</code>. The JVM loads the class into the class area, reserves heap space for the object, and runs the constructor. The constructor creates <code>FlyNoWay#1</code> and <code>Quack#1</code> and stores their addresses in the two fields.</p><p>The picture gains one stack variable, three heap objects and three arrows: <code>model</code>, <code>flyBehavior</code> and <code>quackBehavior</code>.</p>"],
+["2. First call: <code>performFly()</code>","<p><code>performFly()</code> runs <code>flyBehavior.fly()</code>. The JVM follows the <code>flyBehavior</code> arrow to the object it points to and runs that object's <code>fly()</code> method, which prints <code>I can't fly</code>.</p><p>Nothing in memory changes. The duck calls the interface method and does not know which class sits behind it.</p>"],
+["3. Create the new behavior: <code>new FlyRocketPowered()</code>","<p>The JVM loads <code>FlyRocketPowered</code> into the class area for the first time and creates <code>FlyRocketPowered#1</code> on the heap. Its address is passed into <code>setFlyBehavior</code> and stored in the parameter <code>fb</code>, which lives on the stack for the length of the call.</p><p>The duck's <code>flyBehavior</code> arrow still points to <code>FlyNoWay#1</code>. Only <code>fb</code> points to the new object so far.</p>"],
+["4. The swap: <code>flyBehavior = fb;</code>","<p>This line is the runtime change. The address stored in the field <code>flyBehavior</code> is overwritten with the address held in <code>fb</code>, so the arrow moves from <code>FlyNoWay#1</code> to <code>FlyRocketPowered#1</code>. The old arrow is shown dashed and faded, and the <code>fb</code> frame disappears when the method returns.</p><p><code>ModelDuck#1</code> is the same object at the same place. Only one pointer inside it changed.</p><p class='gotcha'>Nothing points to <code>FlyNoWay#1</code> any more, so the garbage collector can reclaim it.</p>"],
+["5. Second call: <code>performFly()</code>","<p>The code is exactly the same as in step 2. The JVM follows <code>flyBehavior</code> as before, but the arrow now leads to <code>FlyRocketPowered#1</code>, so the call prints <code>I'm flying with a rocket!</code>.</p><p class='gotcha'>This works because <code>Duck</code> only knows the <code>FlyBehavior</code> type and holds a pointer, not a fixed class. Swapping the object changes the behavior without editing <code>Duck</code> or <code>ModelDuck</code>.</p>"]];
+const codeLine=[-1,0,1,2,4,5];
+const durs=[1500,2200,3400,2600,2600,3400];
+let step=0,token=0,flyY=177,playing=false,timer=null;
+const lines=[...document.querySelectorAll('#code .ln')];
+const sleep=(ms,tk)=>new Promise(r=>setTimeout(()=>r(tk===token),ms));
+function tween(ms,fn,tk){return new Promise(r=>{const s=performance.now();(function f(n){if(tk!==token)return r(false);let t=Math.min(1,(n-s)/ms);fn(t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2);t<1?requestAnimationFrame(f):r(true)})(s)})}
+function setFly(y){flyY=y;$('fly_path').setAttribute('d','M385 177 L518 '+y);const m=(177+y)/2;$('fly_pill').setAttribute('y',m-11);$('fly_txt').setAttribute('y',m+5)}
+function flash(el){el.style.stroke='#ffd479';el.style.strokeWidth=3;setTimeout(()=>{el.style.stroke='';el.style.strokeWidth=''},1100)}
+function mv(x,y){$('dot').setAttribute('cx',x);$('dot').setAttribute('cy',y)}
+async function pulse(tk,outId,rect){
+const dot=$('dot');dot.style.opacity=1;
+if(!await tween(700,t=>mv(77+178*t,100),tk))return;
+dot.style.opacity=0;flash($('f_fly'));if(!await sleep(500,tk))return;
+dot.style.opacity=1;
+if(!await tween(1000,t=>{if(t<.6){const u=t/.6;mv(385+133*u,177+(flyY-177)*u)}else{const u=(t-.6)/.4;mv(518+75*u,flyY)}},tk))return;
+dot.style.opacity=0;flash(rect);$(outId).style.opacity=1}
+async function go(n,anim){
+token++;const tk=token;step=n;
+document.querySelectorAll('.el').forEach(e=>{const on=n>=1&&sets[n-1].includes(e.id);e.style.transitionDelay=(anim&&n===1)?(e.dataset.d||0)+'ms':'0ms';e.style.opacity=on?(e.id==='ghost'?.5:1):0});
+if(n>=4)$('o_nofly').style.opacity=.4;
+$('dot').style.opacity=0;
+lines.forEach((l,i)=>l.classList.toggle('key',i===codeLine[n]));
+$('eh').textContent='';$('eh').innerHTML=exp[n][0];$('eb').innerHTML=exp[n][1];
+$('lbl').textContent=n===0?'Ready':'Step '+n+' of 5';
+$('out1').style.opacity=(n>2||(n===2&&!anim))?1:0;
+$('out2').style.opacity=(n===5&&!anim)?1:0;
+if(n===4&&anim){setFly(177);await tween(1000,t=>setFly(177+88*t),tk)}else{setFly(n>=4?265:177)}
+if(n===2&&anim)pulse(tk,'out1',$('r_nofly'));
+if(n===5&&anim)pulse(tk,'out2',$('r_rocket'));
+}
+function stop(){playing=false;clearTimeout(timer);$('bPlay').textContent='Play'}
+function auto(){if(!playing)return;timer=setTimeout(()=>{if(!playing)return;if(step>=5){stop();return}go(step+1,true);auto()},durs[step]+1500)}
+$('bPlay').onclick=()=>{if(playing){stop();return}playing=true;$('bPlay').textContent='Pause';if(step===0||step>=5){go(1,true)}auto()};
+$('bNext').onclick=()=>{stop();go(Math.min(step+1,5),true)};
+$('bBack').onclick=()=>{stop();go(Math.max(step-1,0),false)};
+$('bReset').onclick=()=>{stop();go(0,false)};
+go(0,false);
+</script>
+</body>
+</html>
