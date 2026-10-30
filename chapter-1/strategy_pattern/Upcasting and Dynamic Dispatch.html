@@ -81,6 +81,16 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
 .dots{display:flex;gap:5px;margin-top:10px}
 .dots i{flex:1;max-width:30px;height:5px;border-radius:3px;background:var(--line);transition:background .3s}
 .dots i.d{background:var(--ref)}
+.tg{display:inline-block;margin-left:14px;font:700 .72rem "Trebuchet MS",system-ui,sans-serif;padding:0 9px;border-radius:99px;color:var(--bg);vertical-align:1px}
+.tg.up{background:var(--ref)}.tg.dy{background:var(--obj)}
+.marks{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-bottom:12px}
+.mk{border:1px solid var(--line);background:var(--panel);border-left:6px solid var(--line);border-radius:10px;padding:8px 12px;opacity:.5;transition:all .35s;font-size:.86rem;line-height:1.4}
+.mk b{display:block;font-size:.9rem;margin-bottom:2px}
+.mk.up{border-left-color:var(--ref)}.mk.dy{border-left-color:var(--obj)}.mk.ct{border-left-color:var(--cmp)}
+.mk.done{opacity:.85}
+.mk.now{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--obj) 45%,transparent)}
+.mk.up.now{box-shadow:0 0 0 3px color-mix(in srgb,var(--ref) 45%,transparent)}
+.mk.ct.now{box-shadow:0 0 0 3px color-mix(in srgb,var(--cmp) 45%,transparent)}
 @media (max-width:860px){.stage{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important;animation-duration:.01s!important}}
 </style>
@@ -101,6 +111,8 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
   </div>
 
   <div class="code" id="code" aria-label="Java code"></div>
+
+  <div class="marks" id="marks" aria-live="polite"></div>
 
   <div class="stage">
     <div class="col">
@@ -125,7 +137,7 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
         </div>
       </div>
       <div class="box hid" id="beh">
-        <h2>Heap: the behavior object</h2>
+        <h2 id="bT">Heap: the behavior object</h2>
         <div class="obj">
           <div class="hdr" id="hdr2"><span id="hdrCls2"></span><span>class pointer</span></div>
           <div class="row" id="bRow"><span id="bM"></span><em>method table entry</em></div>
@@ -237,16 +249,32 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
     return t;
   }
 
+  function marksHtml(){
+    var X = obj, c = C(), F = c.f, B = behavior(), m = [];
+    var iface = F==="fly" ? "FlyBehavior" : "QuackBehavior";
+    m.push({t:"up",a:1,b:1,h:"Upcast 1: constructor fields",x:"Inside new "+X+"(): quackBehavior = new "+cur("quack")+"() and flyBehavior = new "+cur("fly")+"(). Each object goes into an interface-typed field, an implicit upcast."});
+    m.push({t:"up",a:2,b:2,h:"Upcast 2: Duck d = new "+X+"()",x:"The "+X+" object is stored in a variable of type Duck. The reference type is now broader than the object type."});
+    m.push({t:"ct",a:3,b:3,h:"Compile time: no dispatch yet",x:"The compiler only checks d."+call+" against Duck and records slot "+slot()+". Nothing is chosen yet."});
+    m.push({t:"dy",a:4,b:6,h:"Dynamic dispatch 1: d."+call+"()",x:"At run time the JVM uses the object’s real class "+X+", not Duck, to choose "+owner()+"."+call+"()"+(slot()===0 ? " (an override)." : " (inherited, but still looked up through "+X+"’s table).")});
+    if(c.kind==="swap") m.push({t:"up",a:7,b:7,h:"Upcast 3: setter argument",x:"new "+nb+"() is passed to a parameter of type "+iface+" and stored in the field. Another implicit upcast."});
+    if(c.kind!=="simple") m.push({t:"dy",a:c.kind==="perform"?7:8,b:9,h:"Dynamic dispatch 2: "+fname(F)+"."+mname(F)+"()",x:"The field’s declared type is "+iface+", but the JVM follows it to the "+B+" object and runs "+B+"."+mname(F)+"()."});
+    return m.map(function(k){
+      var now = step>=k.a && step<=k.b, done = step>k.b;
+      return '<div class="mk '+k.t+(now?" now":"")+(done?" done":"")+'"><b>'+(done?"✓ ":"")+k.h+'</b>'+k.x+'</div>';
+    }).join("");
+  }
   function vis(id,on){ var e=$(id); e.classList.toggle("show",on); e.classList.toggle("hid",!on); }
 
   function render(){
     var X = obj, c = C(), s = slot(), L = last(), F = c.f;
     // code
-    var l = ["Duck d = new "+X+"();"];
-    if(c.kind==="simple") l.push("d."+call+"();");
-    if(c.kind==="perform") l.push("d."+call+"();", '<span class="c">// inside Duck.'+call+'():</span>  '+fname(F)+"."+mname(F)+"();");
-    if(c.kind==="swap") l.push("d."+call+"(new "+nb+"());", "d."+(F==="fly"?"performFly":"performQuack")+"();");
+    var UP = '<span class="tg up">UPCAST</span>', DY = '<span class="tg dy">DYNAMIC DISPATCH</span>';
+    var l = ["Duck d = new "+X+"();"+UP];
+    if(c.kind==="simple") l.push("d."+call+"();"+DY);
+    if(c.kind==="perform") l.push("d."+call+"();"+DY, '<span class="c">// inside Duck.'+call+'():</span>  '+fname(F)+"."+mname(F)+"();"+DY);
+    if(c.kind==="swap") l.push("d."+call+"(new "+nb+"());"+UP+DY, "d."+(F==="fly"?"performFly":"performQuack")+"();"+DY+'<span class="c">  // inside: '+fname(F)+"."+mname(F)+"();</span>"+DY);
     $("code").innerHTML = l.map(function(x){return "<div>"+x+"</div>";}).join("");
+    $("marks").innerHTML = marksHtml();
     var act = -1;
     if(step===1||step===2) act = 0;
     else if(step>=3 && step<=6) act = 1;
@@ -276,7 +304,7 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
       return '<div class="row'+(i===s?" ok":"")+'"><span>'+n+'</span><em>slot '+i+(i===s?" ← your call":"")+'</em></div>';
     }).join("");
 
-    $("vtT").textContent = "Method area: method table of "+X;
+    $("vtT").innerHTML = "Method area: method table of "+X+(step>=6&&step<=7 ? ' <span class="tg dy">DYNAMIC DISPATCH 1</span>' : "");
     $("vtN").textContent = X+" extends Duck. Slot order matches Duck’s table, and an override replaces the entry in its slot.";
     $("vtRows").innerHTML = NAMES.map(function(n,i){
       var ov = i===0;
@@ -284,6 +312,7 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
     }).join("");
 
     var B = behavior();
+    $("bT").innerHTML = "Heap: the behavior object"+(step===8 ? ' <span class="tg dy">DYNAMIC DISPATCH 2</span>' : "");
     $("hdrCls2").textContent = "class → "+B;
     $("bM").textContent = B+"."+(F?mname(F):"")+"()";
     $("hdr2").className = "hdr"+(step===8?" glow":"");
