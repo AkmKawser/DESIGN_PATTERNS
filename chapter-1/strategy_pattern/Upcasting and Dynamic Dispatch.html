@@ -91,6 +91,19 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
 .mk.now{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--obj) 45%,transparent)}
 .mk.up.now{box-shadow:0 0 0 3px color-mix(in srgb,var(--ref) 45%,transparent)}
 .mk.ct.now{box-shadow:0 0 0 3px color-mix(in srgb,var(--cmp) 45%,transparent)}
+.src{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.src summary{cursor:pointer;font-weight:600;padding:4px 0}
+.src .lg{color:var(--mute);font-size:.82rem;margin:4px 0 0}
+.srcbox{position:relative;max-height:380px;overflow:auto;background:var(--code);border-radius:8px;padding:8px 0;font:12.5px/1.65 ui-monospace,Consolas,monospace;margin-top:8px}
+.srcbox div{white-space:pre;padding:0 12px;border-left:4px solid transparent;transition:background .3s}
+.srcbox .hl{font-weight:700}
+.srcbox .hl::after{font:700 .72rem "Trebuchet MS",system-ui,sans-serif;margin-left:14px;color:var(--ink)}
+.srcbox .hl.up{background:color-mix(in srgb,var(--ref) 28%,transparent);border-left-color:var(--ref)}
+.srcbox .hl.up::after{content:"← upcast"}
+.srcbox .hl.dy{background:color-mix(in srgb,var(--obj) 30%,transparent);border-left-color:var(--obj)}
+.srcbox .hl.dy::after{content:"← dynamic dispatch"}
+.srcbox .hl.ct{background:color-mix(in srgb,var(--cmp) 28%,transparent);border-left-color:var(--cmp)}
+.srcbox .hl.ct::after{content:"← compile-time check"}
 @media (max-width:860px){.stage{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important;animation-duration:.01s!important}}
 </style>
@@ -161,6 +174,11 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
     <div id="capB"></div>
     <div class="dots" id="dots"></div>
   </div>
+<details class="src" open>
+    <summary>Your source code (lines for the current step are highlighted)</summary>
+    <p class="lg">Teal = upcast, amber = dynamic dispatch, purple = compile-time check. The call in main() is whatever you picked above.</p>
+    <div class="srcbox" id="srcBox" role="region" aria-label="Source code" tabindex="0"></div>
+  </details>
 </main>
 
 <script>
@@ -249,6 +267,54 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
     return t;
   }
 
+  var SRC = [];
+  function add(t,k){ SRC.push([t,k]); }
+  var FB = [["FlyWithWings","I'm flying!!"],["FlyNoWay","I can't fly"],["FlyRocketPowered","I'm flying with a rocket!"]];
+  var QB = [["Quack","Quack"],["Squeak","Squeak"],["MuteQuack","<< Silence >>"]];
+  add("package strategy_pattern;"); add("");
+  add("interface FlyBehavior { void fly(); }"); add("interface QuackBehavior { void quack(); }"); add("");
+  FB.forEach(function(b){ add("class "+b[0]+" implements FlyBehavior {"); add('    @Override public void fly() { System.out.println("'+b[1]+'"); }',"bf:"+b[0]); add("}"); });
+  QB.forEach(function(b){ add("class "+b[0]+" implements QuackBehavior {"); add('    @Override public void quack() { System.out.println("'+b[1]+'"); }',"bq:"+b[0]); add("}"); });
+  add("");
+  add("abstract class Duck {","duckdecl"); add("    FlyBehavior flyBehavior;"); add("    QuackBehavior quackBehavior;"); add("");
+  add("    public abstract void display();","m:display");
+  add("    public void performFly()   { flyBehavior.fly(); }","m:performFly");
+  add("    public void performQuack() { quackBehavior.quack(); }","m:performQuack");
+  add("    public void setFlyBehavior(FlyBehavior fb)     { flyBehavior = fb; }","m:setFlyBehavior");
+  add("    public void setQuackBehavior(QuackBehavior qb) { quackBehavior = qb; }","m:setQuackBehavior");
+  add('    public void swim() { System.out.println("All ducks float, even decoys."); }',"m:swim");
+  add("}"); add("");
+  Object.keys(D).forEach(function(n){
+    var d = D[n], q = "        quackBehavior = new "+d.quack+"();", f = "        flyBehavior = new "+d.fly+"();";
+    add("class "+n+" extends Duck {"); add("    public "+n+"() {");
+    if(n==="ModelDuck"){ add(f,"ctor:"+n); add(q,"ctor:"+n); } else { add(q,"ctor:"+n); add(f,"ctor:"+n); }
+    add("    }");
+    add('    @Override public void display() { System.out.println("'+d.disp+'"); }',"disp:"+n);
+    add("}"); add("");
+  });
+  add("// main(): Duck d = new <object>(); d.<call>();   (the code panel above shows your choice)");
+  var srcBuilt = false;
+  function paintSrc(){
+    var box = $("srcBox");
+    if(!srcBuilt){
+      SRC.forEach(function(r){ var e = document.createElement("div"); e.textContent = r[0] || " "; if(r[1]) e.setAttribute("data-k", r[1]); box.appendChild(e); });
+      srcBuilt = true;
+    }
+    var c = C(), F = c.f, map = {};
+    if(step===1) map["ctor:"+obj] = "up";
+    if(step===2) map.duckdecl = "up";
+    if(step===3) map["m:"+call] = "ct";
+    if(step===6 || (step===7 && c.kind==="simple") || (step===7 && c.kind==="perform")) map[slot()===0 ? "disp:"+obj : "m:"+call] = "dy";
+    if(step===7 && c.kind==="swap") map["m:"+call] = "up";
+    if(step>=8) map[(F==="fly" ? "bf:" : "bq:")+behavior()] = "dy";
+    var first = null, kids = box.children;
+    for(var i=0;i<kids.length;i++){
+      var cl = map[kids[i].getAttribute("data-k")];
+      kids[i].className = cl ? "hl "+cl : "";
+      if(cl && !first) first = kids[i];
+    }
+    if(first) box.scrollTop = Math.max(0, first.offsetTop - 70);
+  }
   function marksHtml(){
     var X = obj, c = C(), F = c.f, B = behavior(), m = [];
     var iface = F==="fly" ? "FlyBehavior" : "QuackBehavior";
@@ -275,6 +341,7 @@ em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
     if(c.kind==="swap") l.push("d."+call+"(new "+nb+"());"+UP+DY, "d."+(F==="fly"?"performFly":"performQuack")+"();"+DY+'<span class="c">  // inside: '+fname(F)+"."+mname(F)+"();</span>"+DY);
     $("code").innerHTML = l.map(function(x){return "<div>"+x+"</div>";}).join("");
     $("marks").innerHTML = marksHtml();
+    paintSrc();
     var act = -1;
     if(step===1||step===2) act = 0;
     else if(step>=3 && step<=6) act = 1;
