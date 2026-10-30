@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Duck code: upcasting and dynamic binding</title>
+<style>
+:root{
+  --bg:#EEF2F4;--panel:#FFFFFF;--ink:#17232D;--mute:#5B6B78;--line:#CBD5DB;
+  --ref:#0B7F86;--obj:#B87500;--objbg:#FFF4DA;--refbg:#DDF3F4;--ok:#1E7B45;--code:#E4EAEE;--cmp:#6B4BB8;--cmpbg:#EEE8FA;
+  color-scheme:light;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10171C;--panel:#18222A;--ink:#E6EDF1;--mute:#93A4B0;--line:#2D3B45;
+    --ref:#4FC3CB;--obj:#F0B84A;--objbg:#2E2410;--refbg:#0F2F32;--ok:#5CCB8A;--code:#0D1317;--cmp:#B7A0F2;--cmpbg:#231C3A;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10171C;--panel:#18222A;--ink:#E6EDF1;--mute:#93A4B0;--line:#2D3B45;
+  --ref:#4FC3CB;--obj:#F0B84A;--objbg:#2E2410;--refbg:#0F2F32;--ok:#5CCB8A;--code:#0D1317;--cmp:#B7A0F2;--cmpbg:#231C3A;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
+main{max-width:1060px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--mute);margin:0 0 14px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.bar label{color:var(--mute);font-size:.88rem;min-width:84px}
+button{font:inherit;font-size:.92rem;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 12px;border-radius:8px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--ref)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible{outline:3px solid var(--ref);outline-offset:2px}
+button.primary{background:var(--ref);border-color:var(--ref);color:var(--bg);font-weight:700}
+button[aria-pressed="true"]{background:var(--objbg);border-color:var(--obj);font-weight:700}
+.sp{flex:1}
+.hid{display:none}
+.show{display:block;animation:in .5s}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.code{background:var(--code);border-radius:10px;padding:10px 6px;font:13.5px/1.8 ui-monospace,Consolas,monospace;margin:6px 0 12px;overflow-x:auto}
+.code div{padding:0 10px;border-left:3px solid transparent;white-space:pre;transition:background .3s,border-color .3s}
+.code div.on{background:color-mix(in srgb,var(--ref) 20%,transparent);border-left-color:var(--ref)}
+.code .c{color:var(--mute)}
+.stage{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:12px;margin-bottom:12px}
+.col{display:flex;flex-direction:column;gap:12px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.box h2{font-size:.85rem;margin:0 0 8px;color:var(--mute);font-weight:600}
+.ref{background:var(--refbg);border:2px solid var(--ref);border-radius:8px;padding:6px 10px;font:14px ui-monospace,Consolas,monospace;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{font:700 .75rem "Trebuchet MS",system-ui,sans-serif;background:var(--ref);color:var(--bg);padding:1px 9px;border-radius:99px}
+.note{color:var(--mute);font-size:.82rem;margin-top:6px}
+.cmp{border-color:var(--cmp);background:var(--cmpbg)}
+.cmp.dim{opacity:.6}
+.cmp h2{color:var(--cmp)}
+.obj{border:2px solid var(--obj);background:var(--objbg);border-radius:8px;padding:8px 10px;transition:box-shadow .4s}
+.hdr{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font:13px ui-monospace,Consolas,monospace;padding:5px 8px;border-radius:6px;background:var(--panel);border:1px solid var(--line);margin-bottom:6px;transition:box-shadow .4s}
+.hdr.glow,.obj.glow{box-shadow:0 0 0 3px var(--obj)}
+.row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:5px 9px;margin-top:5px;border:1px solid var(--line);border-radius:7px;background:var(--panel);font:12.5px ui-monospace,Consolas,monospace;transition:all .35s}
+.row em{font-style:normal;color:var(--mute);font:.78rem "Trebuchet MS",system-ui,sans-serif}
+.row.ok{border-color:var(--cmp);box-shadow:inset 4px 0 0 var(--cmp)}
+.row.act{border-color:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 35%,transparent)}
+.row.run{background:var(--obj);border-color:var(--obj);color:var(--bg);font-weight:700}
+.row.run em{color:var(--bg)}
+.row.ovr em{color:var(--obj);font-weight:700}
+.row.run.ovr em{color:var(--bg)}
+em.flash{animation:flash .9s;font-weight:700;color:var(--obj)}
+@keyframes flash{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.25);opacity:1}100%{transform:none}}
+.trace{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;min-height:34px}
+.trace span{font:12.5px ui-monospace,Consolas,monospace;padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:var(--panel);opacity:0;animation:pop .4s forwards}
+.trace span.last{background:var(--ok);border-color:var(--ok);color:var(--bg);font-weight:700}
+.trace i{font-style:normal;color:var(--mute);opacity:0;animation:pop .4s forwards}
+@keyframes pop{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.out{background:var(--code);border-radius:10px;padding:10px 14px;font:14px ui-monospace,Consolas,monospace;min-height:46px;margin-bottom:12px}
+.out span{color:var(--mute)}.out b{color:var(--ok);margin-left:8px}
+.cap{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--ref);border-radius:10px;padding:12px 16px;min-height:112px}
+.cap.ct{border-left-color:var(--cmp)}
+.phase{display:inline-block;font:700 .75rem "Trebuchet MS",system-ui,sans-serif;padding:1px 10px;border-radius:99px;margin-bottom:4px;background:var(--ref);color:var(--bg)}
+.cap.ct .phase{background:var(--cmp)}
+.cap strong{display:block}
+.dots{display:flex;gap:5px;margin-top:10px}
+.dots i{flex:1;max-width:30px;height:5px;border-radius:3px;background:var(--line);transition:background .3s}
+.dots i.d{background:var(--ref)}
+@media (max-width:860px){.stage{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important;animation-duration:.01s!important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Your Duck code: upcasting and dynamic binding</h1>
+  <p class="sub">Duck is abstract, so every object is one of five subclasses held through a Duck reference. Pick one, pick a call, and step through.</p>
+
+  <div class="bar" id="objBtns" role="group" aria-label="Object created at run time"><label>Object:</label></div>
+  <div class="bar" id="callBtns" role="group" aria-label="Method called"><label>Call:</label></div>
+  <div class="bar hid" id="nbBtns" role="group" aria-label="New behavior"><label>New behavior:</label></div>
+  <div class="bar">
+    <button id="back">Back</button>
+    <button id="next" class="primary">Next step</button>
+    <button id="play">Auto-play</button>
+    <button id="reset">Reset</button>
+  </div>
+
+  <div class="code" id="code" aria-label="Java code"></div>
+
+  <div class="stage">
+    <div class="col">
+      <div class="box hid" id="stack">
+        <h2>Stack: local variable</h2>
+        <div class="ref"><b>d</b> : Duck <span class="pill">upcast</span></div>
+        <div class="note">The declared type is Duck. The object it points to is a subclass.</div>
+      </div>
+      <div class="box cmp hid" id="cmp">
+        <h2>Compiler’s view of type Duck</h2>
+        <div id="cmpRows"></div>
+        <div class="note">Only members declared in Duck are visible through d.</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="box hid" id="heap">
+        <h2>Heap: the duck object</h2>
+        <div class="obj" id="obj">
+          <div class="hdr" id="hdr"><span id="hdrCls"></span><span>header: class pointer</span></div>
+          <div class="row" id="rq"><span>quackBehavior</span><em id="fq"></em></div>
+          <div class="row" id="rf"><span>flyBehavior</span><em id="ff"></em></div>
+        </div>
+      </div>
+      <div class="box hid" id="beh">
+        <h2>Heap: the behavior object</h2>
+        <div class="obj">
+          <div class="hdr" id="hdr2"><span id="hdrCls2"></span><span>class pointer</span></div>
+          <div class="row" id="bRow"><span id="bM"></span><em>method table entry</em></div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="box hid" id="vt">
+        <h2 id="vtT"></h2>
+        <div id="vtRows"></div>
+        <div class="note" id="vtN"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="trace" id="trace" aria-live="polite"></div>
+  <div class="out" aria-live="polite"><span>console:</span><b id="outT"></b></div>
+  <div class="cap" id="cap" aria-live="polite">
+    <span class="phase" id="phase"></span>
+    <strong id="capT"></strong>
+    <div id="capB"></div>
+    <div class="dots" id="dots"></div>
+  </div>
+</main>
+
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id);};
+  var D = {
+    MallardDuck:{disp:"I'm a real Mallard duck.", fly:"FlyWithWings", quack:"Quack"},
+    RedheadDuck:{disp:"I'm a Redhead duck.", fly:"FlyWithWings", quack:"Quack"},
+    RubberDuck:{disp:"I'm a rubber duck.", fly:"FlyNoWay", quack:"Squeak"},
+    DecoyDuck:{disp:"I'm a decoy duck.", fly:"FlyNoWay", quack:"MuteQuack"},
+    ModelDuck:{disp:"I'm a model duck", fly:"FlyNoWay", quack:"Quack"}
+  };
+  var OUT = {FlyWithWings:"I'm flying!!",FlyNoWay:"I can't fly",FlyRocketPowered:"I'm flying with a rocket!",
+             Quack:"Quack",Squeak:"Squeak",MuteQuack:"<< Silence >>"};
+  var OPTS = {fly:["FlyWithWings","FlyNoWay","FlyRocketPowered"], quack:["Quack","Squeak","MuteQuack"]};
+  var NAMES = ["display","performFly","performQuack","swim","setFlyBehavior","setQuackBehavior"];
+  var CALLS = {
+    display:{kind:"simple"}, swim:{kind:"simple"},
+    performFly:{kind:"perform",f:"fly"}, performQuack:{kind:"perform",f:"quack"},
+    setFlyBehavior:{kind:"swap",f:"fly"}, setQuackBehavior:{kind:"swap",f:"quack"}
+  };
+  var SWIM = "All ducks float, even decoys.";
+  var obj = "MallardDuck", call = "display", nb = "FlyRocketPowered", step = 0, timer = null;
+
+  function C(){ return CALLS[call]; }
+  function last(){ return C().kind==="simple" ? 7 : 9; }
+  function slot(){ return NAMES.indexOf(call); }
+  function fname(f){ return f==="fly" ? "flyBehavior" : "quackBehavior"; }
+  function mname(f){ return f==="fly" ? "fly" : "quack"; }
+  function cur(f){ return D[obj][f]; }
+  function behavior(){ var c=C(); return c.kind==="swap" ? nb : cur(c.f); }
+  function callText(){ return call + (C().kind==="swap" ? "(new "+nb+"())" : "()"); }
+  function owner(){ return slot()===0 ? obj : "Duck"; }
+
+  function mkBtns(id, items, key, sel, lab){
+    var h = '<label>'+lab+'</label>';
+    items.forEach(function(x){ h += '<button data-k="'+key+'" data-v="'+x+'" aria-pressed="'+(x===sel)+'">'+x+'</button>'; });
+    $(id).innerHTML = h;
+  }
+  function buildBars(){
+    mkBtns("objBtns", Object.keys(D), "o", obj, "Object:");
+    var lab = NAMES.map(function(n){ return n; });
+    mkBtns("callBtns", lab, "c", call, "Call:");
+    var c = C();
+    if(c.kind==="swap"){ $("nbBtns").classList.remove("hid"); mkBtns("nbBtns", OPTS[c.f], "n", nb, "New behavior:"); }
+    else $("nbBtns").classList.add("hid");
+  }
+
+  function caps(){
+    var X = obj, m = callText(), s = slot(), c = C(), B = behavior(), a = [];
+    a.push(["","Ready","Pick an object and a call, then press Next step."]);
+    a.push(["run","1. The object is created","new "+X+"() allocates the object on the heap. Its constructor fills quackBehavior with "+cur("quack")+" and flyBehavior with "+cur("fly")+". The header stores a class pointer to "+X+", fixed for the object’s whole life."]);
+    a.push(["run","2. The upcast","The reference d is declared as Duck, so the "+X+" is held through a Duck-typed handle. Nothing is copied or converted: only the variable’s static type is broader than the object."]);
+    a.push(["ct","3. Compile time: check against the reference type","The compiler sees d as a Duck. It checks that Duck declares "+call+" and encodes the call as Duck."+call+" (table slot "+s+"). It does not pick which implementation runs."]);
+    a.push(["run","4. Run time: follow the reference","The JVM executes the call and follows d to the real "+X+" object. The declared type Duck is no longer used to choose the method."]);
+    a.push(["run","5. Read the class pointer","The object header points to class "+X+", and that class’s method table is where the lookup happens."]);
+    a.push(["run","6. Pick the slot","Slot "+s+" holds "+owner()+"."+call+"(). "+(s===0 ? X+" overrides the abstract Duck.display(), so its own version is chosen." : X+" does not override it, so the inherited Duck entry is used.")+" This table lookup is dynamic binding."]);
+    if(c.kind==="simple"){
+      a.push(["run","7. Run the chosen method", owner()+"."+call+"() runs and prints "+(call==="swim" ? "the same text for every duck, because swim() is never overridden." : "the text written in "+X+".display(). Another subclass behind the same variable would print different text.")]);
+    } else if(c.kind==="perform"){
+      a.push(["run","7. Run the inherited method","Duck."+call+"() runs. Its body is "+fname(c.f)+"."+mname(c.f)+"(), which is a second dynamic call."]);
+      a.push(["run","8. Second lookup","The "+fname(c.f)+" field holds a "+B+" object. The JVM follows the field, reads that object’s class pointer, and finds "+mname(c.f)+"() in the "+B+" method table."]);
+      a.push(["run","9. Result",B+"."+mname(c.f)+"() runs. The call on the Duck variable is identical for every duck, but the behavior object behind the field decides the output."]);
+    } else {
+      var p = c.f==="fly" ? "performFly" : "performQuack";
+      a.push(["run","7. The field is replaced","new "+nb+"() is created and passed in. Duck."+call+"(...) assigns it to "+fname(c.f)+", so this "+X+" now uses "+nb+" instead of "+cur(c.f)+". The "+X+" object itself is unchanged."]);
+      a.push(["run","8. d."+p+"() uses the new object","Duck."+p+"() runs "+fname(c.f)+"."+mname(c.f)+"(). The JVM follows the field to the "+nb+" object and finds "+mname(c.f)+"() through its class pointer."]);
+      a.push(["run","9. Result","The same d."+p+"() call now prints a different result. Behavior changed at run time with no recompiling and no new duck."]);
+    }
+    return a;
+  }
+
+  function trace(){
+    var X = obj, c = C(), B = behavior(), t = [];
+    var ow = owner()+"."+call+"()";
+    var p = c.f==="fly" ? "performFly" : "performQuack";
+    if(step===1) t = ["new "+X+"()","fields set in constructor","class pointer → "+X];
+    if(step===2) t = ["d = reference","static type Duck","object type "+X];
+    if(step===3) t = ["d."+call,"Duck declares "+call+" ?","yes: slot "+slot()];
+    if(step===4) t = ["invoke d."+call,"follow d → heap object"];
+    if(step===5) t = ["read header","class pointer","class "+X];
+    if(step===6) t = ["method table of "+X,"slot "+slot(),ow];
+    if(step===7) t = c.kind==="simple" ? [ow,"print text"] : c.kind==="perform" ? [ow,fname(c.f)+"."+mname(c.f)+"()"] : [ow,fname(c.f)+" = new "+nb+"()"];
+    if(step===8) t = c.kind==="perform" ? [fname(c.f)+" → "+B+" object","class pointer",mname(c.f)+"() entry",B+"."+mname(c.f)+"()"] : ["d."+p+"()","Duck."+p+"()",fname(c.f)+" → "+nb+" object",nb+"."+mname(c.f)+"()"];
+    if(step===9) t = [B+"."+mname(c.f)+"()","print text"];
+    return t;
+  }
+
+  function vis(id,on){ var e=$(id); e.classList.toggle("show",on); e.classList.toggle("hid",!on); }
+
+  function render(){
+    var X = obj, c = C(), s = slot(), L = last(), F = c.f;
+    // code
+    var l = ["Duck d = new "+X+"();"];
+    if(c.kind==="simple") l.push("d."+call+"();");
+    if(c.kind==="perform") l.push("d."+call+"();", '<span class="c">// inside Duck.'+call+'():</span>  '+fname(F)+"."+mname(F)+"();");
+    if(c.kind==="swap") l.push("d."+call+"(new "+nb+"());", "d."+(F==="fly"?"performFly":"performQuack")+"();");
+    $("code").innerHTML = l.map(function(x){return "<div>"+x+"</div>";}).join("");
+    var act = -1;
+    if(step===1||step===2) act = 0;
+    else if(step>=3 && step<=6) act = 1;
+    else if(step===7) act = c.kind==="perform" ? 2 : 1;
+    else if(step>=8) act = 2;
+    var cs = $("code").children;
+    for(var i=0;i<cs.length;i++) cs[i].className = i===act ? "on" : "";
+
+    var swapped = c.kind==="swap" && step>=7;
+    vis("heap",step>=1); vis("stack",step>=2); vis("cmp",step>=3); vis("vt",step>=5);
+    vis("beh", (c.kind==="perform" && step>=8) || (c.kind==="swap" && step>=7));
+
+    $("hdrCls").textContent = "class → "+X;
+    $("hdr").className = "hdr"+(step===5?" glow":"");
+    $("obj").className = "obj"+(step===4?" glow":"");
+    var fq = (swapped && F==="quack") ? nb : cur("quack");
+    var ff = (swapped && F==="fly") ? nb : cur("fly");
+    $("fq").textContent = fq; $("ff").textContent = ff;
+    $("fq").className = (step===7 && c.kind==="swap" && F==="quack") ? "flash" : "";
+    $("ff").className = (step===7 && c.kind==="swap" && F==="fly") ? "flash" : "";
+    var hot = (c.kind==="perform" && step===8) || (c.kind==="swap" && step===7) ? F : "";
+    $("rq").className = "row"+(hot==="quack"?" act":"");
+    $("rf").className = "row"+(hot==="fly"?" act":"");
+
+    $("cmp").classList.toggle("dim", step>3);
+    $("cmpRows").innerHTML = NAMES.map(function(n,i){
+      return '<div class="row'+(i===s?" ok":"")+'"><span>'+n+'</span><em>slot '+i+(i===s?" ← your call":"")+'</em></div>';
+    }).join("");
+
+    $("vtT").textContent = "Method area: method table of "+X;
+    $("vtN").textContent = X+" extends Duck. Slot order matches Duck’s table, and an override replaces the entry in its slot.";
+    $("vtRows").innerHTML = NAMES.map(function(n,i){
+      var ov = i===0;
+      return '<div class="row'+(ov?" ovr":"")+((i===s && (step===6||step===7))?" run":"")+'"><span>'+i+': '+(ov?X:"Duck")+'.'+n+'()</span><em>'+(ov?"overridden":"inherited")+'</em></div>';
+    }).join("");
+
+    var B = behavior();
+    $("hdrCls2").textContent = "class → "+B;
+    $("bM").textContent = B+"."+(F?mname(F):"")+"()";
+    $("hdr2").className = "hdr"+(step===8?" glow":"");
+    $("bRow").className = "row"+(step>=8?" run":"");
+
+    var t = trace(), h = "";
+    t.forEach(function(x,i){
+      var dl = (i*0.3)+"s";
+      if(i) h += '<i style="animation-delay:'+dl+'">→</i>';
+      h += '<span class="'+(i===t.length-1?"last":"")+'" style="animation-delay:'+dl+'">'+x+'</span>';
+    });
+    $("trace").innerHTML = h;
+
+    var o = "";
+    if(c.kind==="simple" && step>=7) o = call==="swim" ? SWIM : D[X].disp;
+    if(c.kind!=="simple" && step>=9) o = OUT[B];
+    $("outT").textContent = o;
+
+    var cp = caps()[step];
+    $("cap").className = "cap"+(cp[0]==="ct"?" ct":"");
+    $("phase").textContent = cp[0]==="ct" ? "Compile time" : (step===0 ? "Ready" : "Run time");
+    $("capT").textContent = cp[1];
+    $("capB").textContent = cp[2];
+
+    var dd = "";
+    for(var j=0;j<=L;j++) dd += '<i class="'+(j<=step?"d":"")+'"></i>';
+    $("dots").innerHTML = dd;
+    $("back").disabled = step===0;
+    $("next").disabled = step===L;
+  }
+
+  function go(n){ step = Math.max(0,Math.min(last(),n)); render(); }
+  function stop(){ if(timer){clearInterval(timer);timer=null;} $("play").textContent="Auto-play"; }
+  function reset(){ stop(); step=0; ["heap","stack","cmp","vt","beh"].forEach(function(id){ vis(id,false); }); buildBars(); render(); }
+
+  document.addEventListener("click",function(e){
+    var b = e.target.closest("button[data-k]");
+    if(!b) return;
+    var k = b.getAttribute("data-k"), v = b.getAttribute("data-v");
+    if(k==="o") obj = v;
+    if(k==="c"){ call = v; var f = CALLS[v].f; if(CALLS[v].kind==="swap") nb = f==="fly" ? "FlyRocketPowered" : "MuteQuack"; }
+    if(k==="n") nb = v;
+    reset();
+  });
+  $("next").onclick = function(){ stop(); go(step+1); };
+  $("back").onclick = function(){ stop(); go(step-1); };
+  $("reset").onclick = reset;
+  $("play").onclick = function(){
+    if(timer){ stop(); return; }
+    if(step===last()) go(0);
+    $("play").textContent = "Pause";
+    timer = setInterval(function(){ if(step>=last()){ stop(); return; } go(step+1); }, 2800);
+  };
+  buildBars(); render();
+})();
+</script>
+</body>
+</html>
